@@ -1,0 +1,205 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://fiap-secure-systems/schemas/report",
+  "title": "Architecture Analysis Report",
+  "description": "Schema do relatório técnico gerado pela IA após análise do diagrama de arquitetura. Este é o contrato de saída do processing-service e contrato de entrada do report-service.",
+  "type": "object",
+  "required": ["jobId", "componentes", "riscos", "recomendacoes"],
+  "additionalProperties": false,
+  "properties": {
+    "jobId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Identificador do job que originou este relatório."
+    },
+    "componentes": {
+      "type": "array",
+      "description": "Lista de componentes arquiteturais identificados no diagrama pela IA.",
+      "minItems": 0,
+      "items": {
+        "$ref": "#/definitions/Componente"
+      }
+    },
+    "riscos": {
+      "type": "array",
+      "description": "Lista de riscos arquiteturais detectados.",
+      "minItems": 0,
+      "items": {
+        "$ref": "#/definitions/Risco"
+      }
+    },
+    "recomendacoes": {
+      "type": "array",
+      "description": "Lista de recomendações para mitigar os riscos identificados.",
+      "minItems": 0,
+      "items": {
+        "$ref": "#/definitions/Recomendacao"
+      }
+    }
+  },
+  "definitions": {
+    "Componente": {
+      "type": "object",
+      "required": ["nome", "tipo", "descricao"],
+      "additionalProperties": false,
+      "properties": {
+        "nome": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Nome do componente conforme identificado no diagrama."
+        },
+        "tipo": {
+          "type": "string",
+          "enum": [
+            "GATEWAY",
+            "SERVICE",
+            "DATABASE",
+            "QUEUE",
+            "CACHE",
+            "CDN",
+            "LOAD_BALANCER",
+            "EXTERNAL",
+            "UNKNOWN"
+          ],
+          "description": "Categoria arquitetural do componente."
+        },
+        "descricao": {
+          "type": "string",
+          "maxLength": 1000,
+          "description": "Descrição do papel e responsabilidade do componente na arquitetura."
+        }
+      }
+    },
+    "Risco": {
+      "type": "object",
+      "required": ["severidade", "categoria", "titulo", "descricao"],
+      "additionalProperties": false,
+      "properties": {
+        "severidade": {
+          "type": "string",
+          "enum": ["ALTA", "MEDIA", "BAIXA"],
+          "description": "Nível de criticidade do risco para o sistema."
+        },
+        "categoria": {
+          "type": "string",
+          "enum": [
+            "SEGURANCA",
+            "ACOPLAMENTO",
+            "ESCALABILIDADE",
+            "DISPONIBILIDADE",
+            "PERFORMANCE",
+            "MANUTENCAO"
+          ],
+          "description": "Domínio arquitetural ao qual o risco pertence."
+        },
+        "titulo": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Título curto e descritivo do risco."
+        },
+        "descricao": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "Descrição detalhada do risco, sua causa e potencial impacto."
+        },
+        "componentesAfetados": {
+          "type": "array",
+          "description": "Nomes dos componentes identificados que são afetados por este risco.",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "Recomendacao": {
+      "type": "object",
+      "required": ["prioridade", "titulo", "descricao"],
+      "additionalProperties": false,
+      "properties": {
+        "prioridade": {
+          "type": "string",
+          "enum": ["ALTA", "MEDIA", "BAIXA"],
+          "description": "Nível de urgência para implementar a recomendação."
+        },
+        "titulo": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Título curto e acionável da recomendação."
+        },
+        "descricao": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "Explicação detalhada de como implementar a recomendação."
+        },
+        "referencias": {
+          "type": "array",
+          "description": "Links para documentação, artigos ou padrões de referência.",
+          "items": {
+            "type": "string",
+            "format": "uri"
+          }
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "jobId": "550e8400-e29b-41d4-a716-446655440000",
+      "componentes": [
+        {
+          "nome": "API Gateway",
+          "tipo": "GATEWAY",
+          "descricao": "Ponto de entrada centralizado. Roteia requisições para os microsserviços downstream."
+        },
+        {
+          "nome": "Serviço de Pedidos",
+          "tipo": "SERVICE",
+          "descricao": "Gerencia o ciclo de vida dos pedidos, desde criação até confirmação de pagamento."
+        },
+        {
+          "nome": "Banco de Dados Compartilhado",
+          "tipo": "DATABASE",
+          "descricao": "PostgreSQL único acessado por múltiplos serviços."
+        }
+      ],
+      "riscos": [
+        {
+          "severidade": "ALTA",
+          "categoria": "ACOPLAMENTO",
+          "titulo": "Banco de dados compartilhado entre microsserviços",
+          "descricao": "O uso de um único banco de dados por múltiplos serviços cria acoplamento forte, dificulta o deploy independente e torna o banco um ponto único de falha.",
+          "componentesAfetados": ["Banco de Dados Compartilhado"]
+        },
+        {
+          "severidade": "MEDIA",
+          "categoria": "SEGURANCA",
+          "titulo": "Ausência de autenticação/autorização visível no diagrama",
+          "descricao": "Não há indicação de mecanismos de autenticação (ex: JWT, OAuth2) entre o cliente e o API Gateway, nem entre os serviços internos.",
+          "componentesAfetados": ["API Gateway"]
+        }
+      ],
+      "recomendacoes": [
+        {
+          "prioridade": "ALTA",
+          "titulo": "Adotar o padrão Database per Service",
+          "descricao": "Cada microsserviço deve possuir seu próprio banco de dados isolado. Use event sourcing ou sagas para consistência eventual entre serviços.",
+          "referencias": [
+            "https://microservices.io/patterns/data/database-per-service.html"
+          ]
+        },
+        {
+          "prioridade": "MEDIA",
+          "titulo": "Implementar autenticação no API Gateway",
+          "descricao": "Configure validação de JWT no API Gateway e utilize mutual TLS ou tokens de serviço para comunicação interna entre microsserviços.",
+          "referencias": [
+            "https://aws.amazon.com/api-gateway/",
+            "https://oauth.net/2/"
+          ]
+        }
+      ]
+    }
+  ]
+}

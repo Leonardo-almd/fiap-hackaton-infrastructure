@@ -1,0 +1,158 @@
+version: "3.9"
+
+# =============================================================================
+# Docker Compose — Ambiente de Desenvolvimento Local (multi-repo)
+#
+# Pré-requisito: os 4 repositórios devem estar clonados como irmãos:
+#
+#   ~/projects/
+#   ├── fiap-upload-service/
+#   ├── fiap-processing-service/
+#   ├── fiap-report-service/
+#   └── fiap-infrastructure/       ← este arquivo
+#
+# Para rodar: docker compose up -d
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # LocalStack — simula AWS S3 e SQS localmente
+  # ---------------------------------------------------------------------------
+  localstack:
+    image: localstack/localstack:3.7
+    container_name: fiap-localstack
+    ports:
+      - "4566:4566"
+    environment:
+      SERVICES: s3,sqs
+      DEFAULT_REGION: us-east-1
+      LOCALSTACK_AUTH_TOKEN: ${LOCALSTACK_AUTH_TOKEN:-}
+    volumes:
+      - localstack-data:/var/lib/localstack
+      - ./scripts/localstack-init.sh:/etc/localstack/init/ready.d/init.sh:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL — upload_db
+  # ---------------------------------------------------------------------------
+  upload-db:
+    image: postgres:16-alpine
+    container_name: fiap-upload-db
+    environment:
+      POSTGRES_DB: upload_db
+      POSTGRES_USER: upload_user
+      POSTGRES_PASSWORD: upload_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - upload-db-data:/var/lib/postgresql/data
+      - ./docs/database/upload-service-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U upload_user -d upload_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL — report_db
+  # ---------------------------------------------------------------------------
+  report-db:
+    image: postgres:16-alpine
+    container_name: fiap-report-db
+    environment:
+      POSTGRES_DB: report_db
+      POSTGRES_USER: report_user
+      POSTGRES_PASSWORD: report_pass
+    ports:
+      - "5433:5432"
+    volumes:
+      - report-db-data:/var/lib/postgresql/data
+      - ./docs/database/report-service-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U report_user -d report_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # Upload Service
+  # build context aponta para o repo irmão ../fiap-upload-service
+  # ---------------------------------------------------------------------------
+  upload-service:
+    build:
+      context: ../fiap-upload-service
+      dockerfile: Dockerfile
+    container_name: fiap-upload-service
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://upload-db:5432/upload_db
+      SPRING_DATASOURCE_USERNAME: upload_user
+      SPRING_DATASOURCE_PASSWORD: upload_pass
+      AWS_ENDPOINT_OVERRIDE: http://localstack:4566
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      S3_BUCKET_NAME: fiap-diagrams
+      SQS_QUEUE_URL: http://localstack:4566/000000000000/diagram-analysis
+    depends_on:
+      upload-db:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------------------
+  # Processing Service
+  # ---------------------------------------------------------------------------
+  processing-service:
+    build:
+      context: ../fiap-processing-service
+      dockerfile: Dockerfile
+    container_name: fiap-processing-service
+    ports:
+      - "8081:8081"
+    environment:
+      AWS_ENDPOINT_OVERRIDE: http://localstack:4566
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      S3_BUCKET_NAME: fiap-diagrams
+      SQS_QUEUE_URL: http://localstack:4566/000000000000/diagram-analysis
+      UPLOAD_SERVICE_BASE_URL: http://upload-service:8080
+      REPORT_SERVICE_BASE_URL: http://report-service:8082
+      AI_ADAPTER: stub
+    depends_on:
+      localstack:
+        condition: service_healthy
+      upload-service:
+        condition: service_started
+      report-service:
+        condition: service_started
+
+  # ---------------------------------------------------------------------------
+  # Report Service
+  # ---------------------------------------------------------------------------
+  report-service:
+    build:
+      context: ../fiap-report-service
+      dockerfile: Dockerfile
+    container_name: fiap-report-service
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://report-db:5432/report_db
+      SPRING_DATASOURCE_USERNAME: report_user
+      SPRING_DATASOURCE_PASSWORD: report_pass
+    depends_on:
+      report-db:
+        condition: service_healthy
+
+volumes:
+  localstack-data:
+  upload-db-data:
+  report-db-data:

@@ -1,0 +1,243 @@
+openapi: "3.0.3"
+info:
+  title: Report Service API
+  description: |
+    Responsável por persistir e expor os relatórios de análise arquitetural
+    gerados pelo pipeline de IA após o processamento dos diagramas.
+  version: "1.0.0"
+  contact:
+    name: FIAP Secure Systems Team
+
+servers:
+  - url: https://api.{env}.fiap-secure.com/v1
+    variables:
+      env:
+        default: dev
+        enum: [dev, prod]
+  - url: http://localhost:8082/v1
+    description: Desenvolvimento local
+
+tags:
+  - name: reports
+    description: Operações de consulta de relatórios
+
+paths:
+  /reports/{jobId}:
+    get:
+      summary: Buscar relatório de análise de um job
+      operationId: getReport
+      tags: [reports]
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Identificador do job de análise
+      responses:
+        "200":
+          description: Relatório retornado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReportResponse"
+              example:
+                reportId: "rpt-7f3a9c1d-2b4e-48f5-a6d0-1c3e5g7i9k1m"
+                jobId: "550e8400-e29b-41d4-a716-446655440000"
+                createdAt: "2024-11-15T10:31:05Z"
+                componentes:
+                  - nome: "API Gateway"
+                    tipo: "GATEWAY"
+                    descricao: "Ponto de entrada da aplicação. Roteia requisições para os microsserviços."
+                  - nome: "Serviço de Autenticação"
+                    tipo: "SERVICE"
+                    descricao: "Responsável por validar tokens JWT e gerenciar sessões."
+                  - nome: "Banco de Dados Compartilhado"
+                    tipo: "DATABASE"
+                    descricao: "PostgreSQL compartilhado entre múltiplos serviços."
+                riscos:
+                  - severidade: "ALTA"
+                    categoria: "ACOPLAMENTO"
+                    titulo: "Banco de dados compartilhado entre serviços"
+                    descricao: "Múltiplos microsserviços acessando o mesmo banco viola o princípio de independência."
+                    componentes_afetados: ["Banco de Dados Compartilhado"]
+                  - severidade: "MEDIA"
+                    categoria: "SEGURANCA"
+                    titulo: "Ausência de rate limiting no API Gateway"
+                    descricao: "Sem rate limiting, o sistema está vulnerável a ataques de DDoS."
+                    componentes_afetados: ["API Gateway"]
+                recomendacoes:
+                  - prioridade: "ALTA"
+                    titulo: "Separar bancos de dados por serviço"
+                    descricao: "Cada microsserviço deve ter seu próprio banco de dados para garantir independência."
+                    referencias: ["https://microservices.io/patterns/data/database-per-service.html"]
+                  - prioridade: "MEDIA"
+                    titulo: "Implementar rate limiting"
+                    descricao: "Adicionar throttling no API Gateway para proteger os serviços de abuso."
+                    referencias: []
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /reports:
+    post:
+      summary: Criar ou atualizar um relatório (uso interno — processing-service)
+      operationId: createReport
+      tags: [reports]
+      description: |
+        Endpoint interno chamado exclusivamente pelo processing-service
+        após a conclusão da análise de IA. Não deve ser exposto publicamente.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateReportRequest"
+      responses:
+        "201":
+          description: Relatório criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReportResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+components:
+  schemas:
+    ReportResponse:
+      type: object
+      required: [reportId, jobId, createdAt, componentes, riscos, recomendacoes]
+      properties:
+        reportId:
+          type: string
+          format: uuid
+        jobId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        componentes:
+          type: array
+          items:
+            $ref: "#/components/schemas/Componente"
+        riscos:
+          type: array
+          items:
+            $ref: "#/components/schemas/Risco"
+        recomendacoes:
+          type: array
+          items:
+            $ref: "#/components/schemas/Recomendacao"
+
+    CreateReportRequest:
+      type: object
+      required: [jobId, componentes, riscos, recomendacoes]
+      properties:
+        jobId:
+          type: string
+          format: uuid
+        componentes:
+          type: array
+          items:
+            $ref: "#/components/schemas/Componente"
+        riscos:
+          type: array
+          items:
+            $ref: "#/components/schemas/Risco"
+        recomendacoes:
+          type: array
+          items:
+            $ref: "#/components/schemas/Recomendacao"
+
+    Componente:
+      type: object
+      required: [nome, tipo, descricao]
+      properties:
+        nome:
+          type: string
+          description: Nome do componente identificado no diagrama
+        tipo:
+          type: string
+          enum: [GATEWAY, SERVICE, DATABASE, QUEUE, CACHE, CDN, LOAD_BALANCER, EXTERNAL, UNKNOWN]
+          description: Categoria do componente arquitetural
+        descricao:
+          type: string
+          description: Descrição do papel do componente na arquitetura
+
+    Risco:
+      type: object
+      required: [severidade, categoria, titulo, descricao]
+      properties:
+        severidade:
+          type: string
+          enum: [ALTA, MEDIA, BAIXA]
+        categoria:
+          type: string
+          enum: [SEGURANCA, ACOPLAMENTO, ESCALABILIDADE, DISPONIBILIDADE, PERFORMANCE, MANUTENCAO]
+        titulo:
+          type: string
+        descricao:
+          type: string
+        componentes_afetados:
+          type: array
+          items:
+            type: string
+
+    Recomendacao:
+      type: object
+      required: [prioridade, titulo, descricao]
+      properties:
+        prioridade:
+          type: string
+          enum: [ALTA, MEDIA, BAIXA]
+        titulo:
+          type: string
+        descricao:
+          type: string
+        referencias:
+          type: array
+          items:
+            type: string
+            format: uri
+
+    ErrorResponse:
+      type: object
+      required: [timestamp, status, error, message]
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+        error:
+          type: string
+        message:
+          type: string
+        path:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Requisição inválida
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: Recurso não encontrado
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    InternalServerError:
+      description: Erro interno do servidor
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"

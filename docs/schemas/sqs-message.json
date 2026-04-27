@@ -1,0 +1,71 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://fiap-secure-systems/schemas/sqs-message",
+  "title": "SQS Analysis Job Message",
+  "description": "Mensagem publicada pelo upload-service na fila SQS para acionar o processamento pelo processing-service.",
+  "type": "object",
+  "required": ["jobId", "s3Key", "fileType", "fileSize", "publishedAt"],
+  "additionalProperties": false,
+  "properties": {
+    "jobId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Identificador único do job de análise. Correlaciona todas as etapas do fluxo.",
+      "example": "550e8400-e29b-41d4-a716-446655440000"
+    },
+    "s3Key": {
+      "type": "string",
+      "description": "Chave do objeto no bucket S3 onde o arquivo foi armazenado.",
+      "pattern": "^uploads/[a-f0-9\\-]+\\.(png|jpg|jpeg|pdf)$",
+      "example": "uploads/550e8400-e29b-41d4-a716-446655440000.pdf"
+    },
+    "fileType": {
+      "type": "string",
+      "enum": ["PDF", "PNG", "JPG", "JPEG"],
+      "description": "Tipo do arquivo enviado. Define a estratégia de extração de conteúdo no processing-service."
+    },
+    "fileSize": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10485760,
+      "description": "Tamanho do arquivo em bytes. Limite máximo: 10MB (10.485.760 bytes).",
+      "example": 245760
+    },
+    "originalFilename": {
+      "type": "string",
+      "maxLength": 255,
+      "description": "Nome original do arquivo conforme enviado pelo cliente.",
+      "example": "arquitetura-ecommerce-v2.pdf"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 500,
+      "description": "Descrição opcional fornecida pelo cliente no momento do upload."
+    },
+    "publishedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp ISO 8601 de quando a mensagem foi publicada na fila.",
+      "example": "2024-11-15T10:30:00.123Z"
+    }
+  },
+  "examples": [
+    {
+      "jobId": "550e8400-e29b-41d4-a716-446655440000",
+      "s3Key": "uploads/550e8400-e29b-41d4-a716-446655440000.pdf",
+      "fileType": "PDF",
+      "fileSize": 245760,
+      "originalFilename": "arquitetura-ecommerce-v2.pdf",
+      "description": "Diagrama da nova versão do sistema de e-commerce",
+      "publishedAt": "2024-11-15T10:30:00.123Z"
+    },
+    {
+      "jobId": "661f9511-f30c-52e5-b827-557766551111",
+      "s3Key": "uploads/661f9511-f30c-52e5-b827-557766551111.png",
+      "fileType": "PNG",
+      "fileSize": 128000,
+      "originalFilename": "microservices-diagram.png",
+      "publishedAt": "2024-11-15T11:00:00.000Z"
+    }
+  ]
+}
