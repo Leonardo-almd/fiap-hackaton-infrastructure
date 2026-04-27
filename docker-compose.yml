@@ -51,7 +51,6 @@ services:
       - "5432:5432"
     volumes:
       - upload-db-data:/var/lib/postgresql/data
-      - ./docs/database/upload-service-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U upload_user -d upload_db"]
       interval: 10s
@@ -72,7 +71,6 @@ services:
       - "5433:5432"
     volumes:
       - report-db-data:/var/lib/postgresql/data
-      - ./docs/database/report-service-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U report_user -d report_db"]
       interval: 10s
