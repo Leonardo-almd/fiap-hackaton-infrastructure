@@ -14,6 +14,8 @@ Cada serviço possui banco de dados próprio (**RDS PostgreSQL**), seguindo o pr
 flowchart TD
     Client["Cliente (REST / Browser)"]
     APIGW["AWS API Gateway\n(Roteamento + API Key)"]
+    ALB["ALB Publico\n(Path-based routing)"]
+    ECS["ECS Fargate\n(Services)"]
 
     subgraph uploadSvc [upload-service — porta 8080]
         UploadController["UploadController\nPOST /uploads\nGET /jobs/{id}/status"]
@@ -35,32 +37,55 @@ flowchart TD
         ReportRepository["ReportRepository"]
     end
 
-    UploadDB[("RDS PostgreSQL\nupload_db")]
-    ReportDB[("RDS PostgreSQL\nreport_db")]
+    RDS[("RDS PostgreSQL\ninstancia unica\nDBs: upload_db + report_db")]
     S3[("AWS S3\nbucket: fiap-diagrams")]
     SQS[("AWS SQS\nfila: diagram-analysis")]
     AI["Amazon Bedrock\nClaude 3 Sonnet\n(Fase 2)"]
 
     Client -->|"HTTPS"| APIGW
-    APIGW -->|"POST /uploads\nGET /jobs/{id}/status"| uploadSvc
-    APIGW -->|"GET /reports/{jobId}"| reportSvc
+    APIGW --> ALB --> ECS
+    ECS --> uploadSvc
+    ECS --> reportSvc
+    ECS --> processingSvc
 
     UploadController --> UploadUseCase
     UploadUseCase --> S3Port --> S3
-    UploadUseCase --> JobRepository --> UploadDB
+    UploadUseCase --> JobRepository --> RDS
     UploadUseCase --> SQSPort --> SQS
 
     SQS -->|"polling"| SQSConsumer
     SQSConsumer --> ProcessUseCase
     ProcessUseCase -->|"GET arquivo"| S3
-    ProcessUseCase -->|"atualiza status"| UploadDB
+    ProcessUseCase -->|"atualiza status"| RDS
     ProcessUseCase --> AIPort --> AI
     ProcessUseCase --> ReportClient -->|"POST /reports"| reportSvc
 
-    ReportController --> ReportRepository --> ReportDB
+    ReportController --> ReportRepository --> RDS
 ```
 
 ---
+
+## Diagrama de Infra (MVP Semana 4)
+
+```mermaid
+flowchart LR
+    Client["Cliente"] --> APIGW["API Gateway"] --> ALB["ALB Publico"]
+
+    subgraph VPC["VPC"]
+        subgraph Public["Subnets Publicas"]
+            ALB
+            ECS["ECS Fargate\n(upload/report/processing)"]
+        end
+
+        subgraph Private["Subnets Privadas"]
+            RDS["RDS Postgres\ninstancia unica"]
+        end
+    end
+
+    ECS --> S3["S3 Bucket"]
+    ECS --> SQS["SQS + DLQ"]
+    ECS --> RDS
+```
 
 ## Fluxo Principal
 
@@ -195,13 +220,21 @@ O processing-service implementa a interface `AIAnalysisPort`. Na Fase 1, um adap
 |---|---|---|
 | Armazenamento de arquivos | S3 | Bucket privado, server-side encryption (SSE-S3) |
 | Fila de mensagens | SQS | Standard Queue + DLQ (maxReceiveCount: 3) |
-| Banco de dados | RDS PostgreSQL 16 | db.t3.micro por serviço (MVP) |
+| Banco de dados | RDS PostgreSQL 16 | db.t3.micro (instancia unica, dois DBs logicos) |
 | Containers | ECS Fargate | Task per service, Auto Scaling |
 | Roteamento | API Gateway | REST API, stage: dev/prod |
 | Secrets | Secrets Manager | Credenciais de DB, chaves de API |
 | Logs | CloudWatch | Log groups por serviço, retenção 30 dias |
 | Imagens Docker | ECR | Repositório por serviço |
 | Rede | VPC | Private subnets para serviços e DBs, public para ALB |
+
+---
+
+## Simplificacoes do MVP (Semana 4)
+
+- RDS unico com dois databases logicos (reduz custo, mantem isolamento logico).
+- ECS tasks em subnets publicas com IP publico (evita NAT).
+- API Gateway apontando para ALB publico, com API Key.
 
 ---
 
