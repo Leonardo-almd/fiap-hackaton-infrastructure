@@ -113,36 +113,47 @@ terraform validate
 
 ### Variáveis necessárias no Terraform Cloud
 
-| Variavel | Descricao | Default | Obrigatoria | Exemplo |
-|---|---|---|---|---|
-| `tfc_organization` | Nome da organizacao no Terraform Cloud. | - | Sim | `fiap-lab` |
-| `tfc_workspace` | Nome do workspace no TFC. | `fiap-hackaton-prod` | Nao | `fiap-hackaton-prod` |
-| `aws_region` | Regiao AWS para provisionar. | `us-east-1` | Nao | `us-east-1` |
-| `project` | Prefixo de nome de recursos. | `fiap-hackaton` | Nao | `fiap-hackaton` |
-| `environment` | Ambiente usado no prefixo. | `prod` | Nao | `prod` |
-| `vpc_cidr` | CIDR da VPC. | `10.0.0.0/16` | Nao | `10.0.0.0/16` |
-| `public_subnet_cidrs` | CIDRs das subnets publicas. | `["10.0.1.0/24", "10.0.2.0/24"]` | Nao | `["10.0.1.0/24", "10.0.2.0/24"]` |
-| `private_subnet_cidrs` | CIDRs das subnets privadas. | `["10.0.11.0/24", "10.0.12.0/24"]` | Nao | `["10.0.11.0/24", "10.0.12.0/24"]` |
-| `db_instance_class` | Classe do RDS. | `db.t3.micro` | Nao | `db.t3.micro` |
-| `db_allocated_storage` | Tamanho do RDS (GB). | `20` | Nao | `20` |
-| `db_name_upload` | Nome do DB do upload-service. | `upload_db` | Nao | `upload_db` |
-| `db_name_report` | Nome do DB do report-service. | `report_db` | Nao | `report_db` |
-| `db_username` | Usuario master do RDS (sensitive). | - | Sim | `fiap_user` |
-| `db_password` | Senha master do RDS (sensitive). | - | Sim | `S3nh@F0rte!` |
-| `s3_bucket_name` | Bucket S3 para uploads. | `fiap-hackaton-prod-diagrams` | Nao | `fiap-hackaton-prod-diagrams` |
-| `sqs_queue_name` | Fila SQS principal. | `fiap-hackaton-prod-diagram-analysis` | Nao | `fiap-hackaton-prod-diagram-analysis` |
-| `sqs_dlq_name` | DLQ da fila principal. | `fiap-hackaton-prod-diagram-analysis-dlq` | Nao | `fiap-hackaton-prod-diagram-analysis-dlq` |
-| `api_gw_stage` | Stage do API Gateway. | `prod` | Nao | `prod` |
-| `api_key_name` | Nome da API Key. | `fiap-hackaton-prod-apikey` | Nao | `fiap-hackaton-prod-apikey` |
-| `api_key_value` | Valor da API Key (sensitive). | - | Sim | `change-me-123` |
-| `ecs_cpu` | CPU por task (Fargate). | `512` | Nao | `512` |
-| `ecs_memory` | Memoria por task (MiB). | `1024` | Nao | `1024` |
-| `upload_image` | Imagem do upload-service. | - | Sim | `123456789012.dkr.ecr.us-east-1.amazonaws.com/fiap-hackaton-prod-upload-service:latest` |
-| `report_image` | Imagem do report-service. | - | Sim | `123456789012.dkr.ecr.us-east-1.amazonaws.com/fiap-hackaton-prod-report-service:latest` |
-| `processing_image` | Imagem do processing-service. | - | Sim | `123456789012.dkr.ecr.us-east-1.amazonaws.com/fiap-hackaton-prod-processing-service:latest` |
-| `alb_allowed_cidrs` | CIDRs permitidos no ALB. | `["0.0.0.0/0"]` | Nao | `["0.0.0.0/0"]` |
-| `log_retention_days` | Retencao de logs (dias). | `30` | Nao | `30` |
-| `tags` | Tags extras (map). | `{}` | Nao | `{ Owner = "fiap" }` |
+| Variavel | Tipo no TFC | Descricao | Default | Obrigatoria | Exemplo |
+|---|---|---|---|---|---|
+| `tfc_organization` | Terraform variable | Nome da organizacao no Terraform Cloud. | - | Sim | `fiap-lab` |
+| `tfc_workspace` | Terraform variable | Nome do workspace no TFC. | `fiap-hackaton-prod` | Nao | `fiap-hackaton-prod` |
+| `aws_region` | Terraform variable | Regiao AWS para provisionar. | `us-east-1` | Nao | `us-east-1` |
+| `project` | Terraform variable | Prefixo de nome de recursos. | `fiap-hackaton` | Nao | `fiap-hackaton` |
+| `environment` | Terraform variable | Ambiente usado no prefixo. | `prod` | Nao | `prod` |
+| `vpc_cidr` | Terraform variable | CIDR da VPC. | `10.0.0.0/16` | Nao | `10.0.0.0/16` |
+| `public_subnet_cidrs` | Terraform variable | CIDRs das subnets publicas. | `["10.0.1.0/24", "10.0.2.0/24"]` | Nao | `["10.0.1.0/24", "10.0.2.0/24"]` |
+| `private_subnet_cidrs` | Terraform variable | CIDRs das subnets privadas. | `["10.0.11.0/24", "10.0.12.0/24"]` | Nao | `["10.0.11.0/24", "10.0.12.0/24"]` |
+| `db_instance_class` | Terraform variable | Classe do RDS. | `db.t3.micro` | Nao | `db.t3.micro` |
+| `db_allocated_storage` | Terraform variable | Tamanho do RDS (GB). | `20` | Nao | `20` |
+| `db_name_upload` | Terraform variable | Nome do DB do upload-service. | `upload_db` | Nao | `upload_db` |
+| `db_name_report` | Terraform variable | Nome do DB do report-service. | `report_db` | Nao | `report_db` |
+| `db_username` | Terraform variable | Usuario master do RDS (sensitive). | - | Sim | `fiap_user` |
+| `db_password` | Terraform variable | Senha master do RDS (sensitive). | - | Sim | `S3nh@F0rte!` |
+| `s3_bucket_name` | Terraform variable | Bucket S3 para uploads. | `fiap-hackaton-prod-diagrams` | Nao | `fiap-hackaton-prod-diagrams` |
+| `sqs_queue_name` | Terraform variable | Fila SQS principal. | `fiap-hackaton-prod-diagram-analysis` | Nao | `fiap-hackaton-prod-diagram-analysis` |
+| `sqs_dlq_name` | Terraform variable | DLQ da fila principal. | `fiap-hackaton-prod-diagram-analysis-dlq` | Nao | `fiap-hackaton-prod-diagram-analysis-dlq` |
+| `api_gw_stage` | Terraform variable | Stage do API Gateway. | `prod` | Nao | `prod` |
+| `api_key_name` | Terraform variable | Nome da API Key. | `fiap-hackaton-prod-apikey` | Nao | `fiap-hackaton-prod-apikey` |
+| `api_key_value` | Terraform variable | Valor da API Key (sensitive). | - | Sim | `change-me-123` |
+| `ecs_cpu` | Terraform variable | CPU por task (Fargate). | `512` | Nao | `512` |
+| `ecs_memory` | Terraform variable | Memoria por task (MiB). | `1024` | Nao | `1024` |
+| `upload_image` | Terraform variable | Imagem do upload-service. | - | Sim | `123456789012.dkr.ecr.us-east-1.amazonaws.com/fiap-hackaton-prod-upload-service:latest` |
+| `report_image` | Terraform variable | Imagem do report-service. | - | Sim | `123456789012.dkr.ecr.us-east-1.amazonaws.com/fiap-hackaton-prod-report-service:latest` |
+| `processing_image` | Terraform variable | Imagem do processing-service. | - | Sim | `123456789012.dkr.ecr.us-east-1.amazonaws.com/fiap-hackaton-prod-processing-service:latest` |
+| `alb_allowed_cidrs` | Terraform variable | CIDRs permitidos no ALB. | `["0.0.0.0/0"]` | Nao | `["0.0.0.0/0"]` |
+| `log_retention_days` | Terraform variable | Retencao de logs (dias). | `30` | Nao | `30` |
+| `tags` | Terraform variable | Tags extras (map). | `{}` | Nao | `{ Owner = "fiap" }` |
+
+### Environment variables no Terraform Cloud
+
+As credenciais AWS devem ser configuradas como **Environment variables** no TFC:
+
+- `AWS_ACCESS_KEY_ID` (sensitive)
+- `AWS_SECRET_ACCESS_KEY` (sensitive)
+
+Opcionalmente, se quiser, pode definir:
+
+- `AWS_DEFAULT_REGION` (ex: `us-east-1`)
 
 ### API Key: precisa ou nao?
 
@@ -207,12 +218,12 @@ Se preferir, voce pode gerar manualmente no console AWS, mas **neste projeto a A
 
 As tasks do ECS usam as variaveis `upload_image`, `report_image` e `processing_image` (com tag). O CI/CD precisa publicar a imagem no ECR e atualizar esses valores. Opcoes:
 
-1. **Terraform como fonte de verdade (recomendado para o MVP)**
+1. **Terraform como fonte de verdade**
   - CI/CD faz build e push no ECR.
   - CI/CD atualiza as variaveis do Terraform Cloud (ex: `upload_image`) e dispara um run.
   - Terraform atualiza a task definition e o ECS faz rollout.
 
-2. **Deploy direto no ECS (sem atualizar Terraform)**
+2. **Deploy direto no ECS (sem atualizar Terraform) >UTILIZADO<**
   - CI/CD faz `aws ecs update-service` com nova task definition.
   - Mais rapido, mas o estado do Terraform fica desatualizado.
 
