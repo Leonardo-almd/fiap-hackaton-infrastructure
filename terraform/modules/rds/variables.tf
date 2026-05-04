@@ -28,11 +28,6 @@ variable "create_report_db" {
   description = "Whether to create the report database after RDS is available."
 }
 
-variable "create_report_db" {
-  type        = bool
-  description = "Whether to create the report database after RDS is available."
-}
-
 variable "db_username" {
   type        = string
   description = "Master DB username."
