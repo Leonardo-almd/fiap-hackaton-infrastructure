@@ -28,11 +28,19 @@ resource "aws_db_instance" "this" {
   })
 }
 
+resource "random_id" "secret_suffix" {
+  byte_length = 3
+
+  keepers = {
+    name_prefix = var.name_prefix
+  }
+}
+
 resource "aws_secretsmanager_secret" "db" {
-  name = "${var.name_prefix}-db-credentials"
+  name = "${var.name_prefix}-db-credentials-${random_id.secret_suffix.hex}"
 
   tags = merge(var.tags, {
-    Name = "${var.name_prefix}-db-credentials"
+    Name = "${var.name_prefix}-db-credentials-${random_id.secret_suffix.hex}"
   })
 }
 
@@ -65,7 +73,7 @@ resource "null_resource" "lambda_package" {
     command = <<-EOT
       rm -rf "${local.lambda_build_dir}" "${local.lambda_zip_path}"
       mkdir -p "${local.lambda_build_dir}"
-      python -m pip install -r "${local.lambda_src_dir}/requirements.txt" -t "${local.lambda_build_dir}"
+      python3 -m pip install -r "${local.lambda_src_dir}/requirements.txt" -t "${local.lambda_build_dir}"
       cp "${local.lambda_src_dir}/handler.py" "${local.lambda_build_dir}/handler.py"
     EOT
   }
@@ -155,5 +163,5 @@ resource "aws_lambda_invocation" "report_db_init" {
   function_name = aws_lambda_function.report_db_init[0].function_name
   input         = jsonencode({})
 
-  depends_on = [aws_lambda_function.report_db_init]
+  depends_on = [aws_db_instance.this, aws_secretsmanager_secret_version.db, aws_lambda_function.report_db_init]
 }
