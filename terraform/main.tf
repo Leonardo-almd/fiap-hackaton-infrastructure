@@ -41,6 +41,7 @@ module "rds" {
   db_allocated_storage = var.db_allocated_storage
   db_name_upload       = var.db_name_upload
   db_name_report       = var.db_name_report
+  create_report_db     = var.create_report_db
   db_username          = var.db_username
   db_password          = var.db_password
   subnet_ids           = module.network.private_subnet_ids
@@ -91,6 +92,9 @@ module "ecs" {
   report_image          = var.report_image
   processing_image      = var.processing_image
   upload_tg_arn          = module.alb.upload_tg_arn
+  create_report_db     = var.create_report_db
+  lambda_subnet_ids    = module.network.private_subnet_ids
+  lambda_security_group_id = module.security.lambda_sg_id
   report_tg_arn          = module.alb.report_tg_arn
   execution_role_arn    = module.iam.execution_role_arn
   upload_task_role_arn  = module.iam.upload_role_arn

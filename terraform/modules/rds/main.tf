@@ -48,3 +48,112 @@ resource "aws_secretsmanager_secret_version" "db" {
     db_report  = var.db_name_report
   })
 }
+
+locals {
+  lambda_src_dir   = "${path.module}/lambda"
+  lambda_build_dir = "${path.module}/lambda_build"
+  lambda_zip_path  = "${path.module}/lambda_build.zip"
+}
+
+resource "null_resource" "lambda_package" {
+  triggers = {
+    requirements_hash = filesha256("${local.lambda_src_dir}/requirements.txt")
+    handler_hash      = filesha256("${local.lambda_src_dir}/handler.py")
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      rm -rf "${local.lambda_build_dir}" "${local.lambda_zip_path}"
+      mkdir -p "${local.lambda_build_dir}"
+      python -m pip install -r "${local.lambda_src_dir}/requirements.txt" -t "${local.lambda_build_dir}"
+      cp "${local.lambda_src_dir}/handler.py" "${local.lambda_build_dir}/handler.py"
+    EOT
+  }
+}
+
+data "archive_file" "lambda_zip" {
+  type        = "zip"
+  source_dir  = local.lambda_build_dir
+  output_path = local.lambda_zip_path
+
+  depends_on = [null_resource.lambda_package]
+}
+
+data "aws_iam_policy_document" "lambda_assume" {
+  statement {
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["lambda.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "lambda" {
+  name               = "${var.name_prefix}-role-rds-init"
+  assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+
+  tags = merge(var.tags, {
+    Name = "${var.name_prefix}-role-rds-init"
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_basic" {
+  role       = aws_iam_role.lambda.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_vpc" {
+  role       = aws_iam_role.lambda.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+}
+
+resource "aws_iam_role_policy" "lambda_secrets" {
+  name = "${var.name_prefix}-policy-rds-init"
+  role = aws_iam_role.lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = ["secretsmanager:GetSecretValue"]
+        Resource = aws_secretsmanager_secret.db.arn
+      }
+    ]
+  })
+}
+
+resource "aws_lambda_function" "report_db_init" {
+  count         = var.create_report_db ? 1 : 0
+  function_name = "${var.name_prefix}-init-report-db"
+  filename      = data.archive_file.lambda_zip.output_path
+  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+  handler       = "handler.lambda_handler"
+  runtime       = "python3.12"
+  role          = aws_iam_role.lambda.arn
+  timeout       = 30
+
+  vpc_config {
+    subnet_ids         = var.lambda_subnet_ids
+    security_group_ids = [var.lambda_security_group_id]
+  }
+
+  environment {
+    variables = {
+      SECRET_ARN      = aws_secretsmanager_secret.db.arn
+      REPORT_DB_NAME  = var.db_name_report
+    }
+  }
+
+  depends_on = [aws_db_instance.this]
+}
+
+resource "aws_lambda_invocation" "report_db_init" {
+  count         = var.create_report_db ? 1 : 0
+  function_name = aws_lambda_function.report_db_init[0].function_name
+  input         = jsonencode({})
+
+  depends_on = [aws_lambda_function.report_db_init]
+}
