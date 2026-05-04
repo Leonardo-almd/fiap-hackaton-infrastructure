@@ -75,16 +75,10 @@ resource "null_resource" "lambda_package" {
       mkdir -p "${local.lambda_build_dir}"
       python3 -m pip install -r "${local.lambda_src_dir}/requirements.txt" -t "${local.lambda_build_dir}"
       cp "${local.lambda_src_dir}/handler.py" "${local.lambda_build_dir}/handler.py"
+      cd "${local.lambda_build_dir}"
+      zip -r "${local.lambda_zip_path}" .
     EOT
   }
-}
-
-data "archive_file" "lambda_zip" {
-  type        = "zip"
-  source_dir  = local.lambda_build_dir
-  output_path = local.lambda_zip_path
-
-  depends_on = [null_resource.lambda_package]
 }
 
 data "aws_iam_policy_document" "lambda_assume" {
@@ -136,8 +130,8 @@ resource "aws_iam_role_policy" "lambda_secrets" {
 resource "aws_lambda_function" "report_db_init" {
   count         = var.create_report_db ? 1 : 0
   function_name = "${var.name_prefix}-init-report-db"
-  filename      = data.archive_file.lambda_zip.output_path
-  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+  filename      = local.lambda_zip_path
+  source_code_hash = try(filebase64sha256(local.lambda_zip_path), null)
   handler       = "handler.lambda_handler"
   runtime       = "python3.12"
   role          = aws_iam_role.lambda.arn
@@ -155,7 +149,7 @@ resource "aws_lambda_function" "report_db_init" {
     }
   }
 
-  depends_on = [aws_db_instance.this]
+  depends_on = [aws_db_instance.this, null_resource.lambda_package]
 }
 
 resource "aws_lambda_invocation" "report_db_init" {
