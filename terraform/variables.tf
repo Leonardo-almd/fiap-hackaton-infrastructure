@@ -69,6 +69,12 @@ variable "db_name_report" {
   default     = "report_db"
 }
 
+variable "create_report_db" {
+  type        = bool
+  description = "Whether to create the report database after RDS is available."
+  default     = true
+}
+
 variable "db_username" {
   type        = string
   description = "Master DB username."
@@ -120,13 +126,13 @@ variable "api_key_value" {
 variable "ecs_cpu" {
   type        = number
   description = "CPU units for ECS tasks."
-  default     = 512
+  default     = 256
 }
 
 variable "ecs_memory" {
   type        = number
   description = "Memory (MiB) for ECS tasks."
-  default     = 1024
+  default     = 512
 }
 
 variable "upload_image" {
@@ -153,7 +159,7 @@ variable "alb_allowed_cidrs" {
 variable "log_retention_days" {
   type        = number
   description = "CloudWatch log retention in days."
-  default     = 30
+  default     = 3
 }
 
 variable "tags" {

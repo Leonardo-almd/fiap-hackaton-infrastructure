@@ -23,6 +23,16 @@ variable "db_name_report" {
   description = "Logical database name for report-service."
 }
 
+variable "create_report_db" {
+  type        = bool
+  description = "Whether to create the report database after RDS is available."
+}
+
+variable "create_report_db" {
+  type        = bool
+  description = "Whether to create the report database after RDS is available."
+}
+
 variable "db_username" {
   type        = string
   description = "Master DB username."
@@ -38,6 +48,16 @@ variable "db_password" {
 variable "subnet_ids" {
   type        = list(string)
   description = "Private subnet IDs for RDS."
+}
+
+variable "lambda_subnet_ids" {
+  type        = list(string)
+  description = "Subnet IDs for the Lambda running DB initialization."
+}
+
+variable "lambda_security_group_id" {
+  type        = string
+  description = "Security group ID for the Lambda running DB initialization."
 }
 
 variable "security_group_id" {

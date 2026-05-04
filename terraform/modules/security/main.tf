@@ -58,6 +58,24 @@ resource "aws_security_group" "ecs" {
   })
 }
 
+resource "aws_security_group" "lambda" {
+  name        = "${var.name_prefix}-sg-lambda"
+  description = "Lambda security group"
+  vpc_id      = var.vpc_id
+
+  egress {
+    description = "All outbound"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = merge(var.tags, {
+    Name = "${var.name_prefix}-sg-lambda"
+  })
+}
+
 resource "aws_security_group" "rds" {
   name        = "${var.name_prefix}-sg-rds"
   description = "RDS security group"
@@ -69,6 +87,14 @@ resource "aws_security_group" "rds" {
     to_port         = 5432
     protocol        = "tcp"
     security_groups = [aws_security_group.ecs.id]
+  }
+
+  ingress {
+    description     = "Postgres from Lambda"
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [aws_security_group.lambda.id]
   }
 
   egress {

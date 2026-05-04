@@ -127,6 +127,7 @@ terraform validate
 | `db_allocated_storage` | Terraform variable | Tamanho do RDS (GB). | `20` | Nao | `20` |
 | `db_name_upload` | Terraform variable | Nome do DB do upload-service. | `upload_db` | Nao | `upload_db` |
 | `db_name_report` | Terraform variable | Nome do DB do report-service. | `report_db` | Nao | `report_db` |
+| `create_report_db` | Terraform variable | Criar o banco `report_db` apos o RDS subir. | `true` | Nao | `true` |
 | `db_username` | Terraform variable | Usuario master do RDS (sensitive). | - | Sim | `fiap_user` |
 | `db_password` | Terraform variable | Senha master do RDS (sensitive). | - | Sim | `S3nh@F0rte!` |
 | `s3_bucket_name` | Terraform variable | Bucket S3 para uploads. | `fiap-hackaton-prod-diagrams` | Nao | `fiap-hackaton-prod-diagrams` |
@@ -135,13 +136,13 @@ terraform validate
 | `api_gw_stage` | Terraform variable | Stage do API Gateway. | `prod` | Nao | `prod` |
 | `api_key_name` | Terraform variable | Nome da API Key. | `fiap-hackaton-prod-apikey` | Nao | `fiap-hackaton-prod-apikey` |
 | `api_key_value` | Terraform variable | Valor da API Key (sensitive). | - | Sim | `change-me-123` |
-| `ecs_cpu` | Terraform variable | CPU por task (Fargate). | `512` | Nao | `512` |
-| `ecs_memory` | Terraform variable | Memoria por task (MiB). | `1024` | Nao | `1024` |
+| `ecs_cpu` | Terraform variable | CPU por task (Fargate). | `256` | Nao | `256` |
+| `ecs_memory` | Terraform variable | Memoria por task (MiB). | `512` | Nao | `512` |
 | `upload_image` | Terraform variable | Imagem do upload-service. | - | Sim | `123456789012.dkr.ecr.us-east-1.amazonaws.com/fiap-hackaton-prod-upload-service:latest` |
 | `report_image` | Terraform variable | Imagem do report-service. | - | Sim | `123456789012.dkr.ecr.us-east-1.amazonaws.com/fiap-hackaton-prod-report-service:latest` |
 | `processing_image` | Terraform variable | Imagem do processing-service. | - | Sim | `123456789012.dkr.ecr.us-east-1.amazonaws.com/fiap-hackaton-prod-processing-service:latest` |
 | `alb_allowed_cidrs` | Terraform variable | CIDRs permitidos no ALB. | `["0.0.0.0/0"]` | Nao | `["0.0.0.0/0"]` |
-| `log_retention_days` | Terraform variable | Retencao de logs (dias). | `30` | Nao | `30` |
+| `log_retention_days` | Terraform variable | Retencao de logs (dias). | `3` | Nao | `3` |
 | `tags` | Terraform variable | Tags extras (map). | `{}` | Nao | `{ Owner = "fiap" }` |
 
 ### Environment variables no Terraform Cloud
