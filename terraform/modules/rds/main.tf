@@ -124,22 +124,6 @@ resource "aws_iam_role_policy_attachment" "lambda_vpc" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
 }
 
-resource "aws_iam_role_policy" "lambda_secrets" {
-  name = "${var.name_prefix}-policy-rds-init"
-  role = aws_iam_role.lambda.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = ["secretsmanager:GetSecretValue"]
-        Resource = aws_secretsmanager_secret.db.arn
-      }
-    ]
-  })
-}
-
 resource "aws_lambda_function" "report_db_init" {
   count         = var.create_report_db ? 1 : 0
   function_name = "${var.name_prefix}-init-report-db"
@@ -148,7 +132,7 @@ resource "aws_lambda_function" "report_db_init" {
   handler       = "handler.lambda_handler"
   runtime       = "python3.12"
   role          = aws_iam_role.lambda.arn
-  timeout       = 120
+  timeout       = 300
 
   vpc_config {
     subnet_ids         = var.lambda_subnet_ids
@@ -157,8 +141,12 @@ resource "aws_lambda_function" "report_db_init" {
 
   environment {
     variables = {
-      SECRET_ARN      = aws_secretsmanager_secret.db.arn
-      REPORT_DB_NAME  = var.db_name_report
+      REPORT_DB_NAME = var.db_name_report
+      DB_HOST         = aws_db_instance.this.address
+      DB_PORT         = aws_db_instance.this.port
+      DB_USERNAME     = var.db_username
+      DB_PASSWORD     = var.db_password
+      DB_ADMIN_DB     = var.db_name_upload
     }
   }
 
@@ -170,5 +158,5 @@ resource "aws_lambda_invocation" "report_db_init" {
   function_name = aws_lambda_function.report_db_init[0].function_name
   input         = jsonencode({})
 
-  depends_on = [aws_db_instance.this, aws_secretsmanager_secret_version.db, aws_lambda_function.report_db_init]
+  depends_on = [aws_db_instance.this, aws_lambda_function.report_db_init]
 }
