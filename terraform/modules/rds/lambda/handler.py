@@ -1,28 +1,23 @@
-import json
 import os
 import time
 
-import boto3
 import pg8000
 
 
 def lambda_handler(event, context):
     print("Starting report DB init")
-    secret_arn = os.environ["SECRET_ARN"]
     report_db = os.environ["REPORT_DB_NAME"]
-    print(f"Secret ARN: {secret_arn}")
+    host = os.environ["DB_HOST"]
+    port = int(os.environ.get("DB_PORT", "5432"))
+    username = os.environ["DB_USERNAME"]
+    password = os.environ["DB_PASSWORD"]
+    admin_db = os.environ["DB_ADMIN_DB"]
+
     print(f"Target report DB: {report_db}")
-
-    client = boto3.client("secretsmanager")
-    print("Fetching secret from Secrets Manager")
-    secret = client.get_secret_value(SecretId=secret_arn)
-    payload = json.loads(secret["SecretString"])
-
-    host = payload["host"]
-    port = int(payload.get("port", 5432))
-    username = payload["username"]
-    password = payload["password"]
-    admin_db = payload["db_upload"]
+    print(f"DB host: {host}")
+    print(f"DB port: {port}")
+    print(f"DB admin database: {admin_db}")
+    print(f"DB username: {username}")
     print(f"DB host: {host}")
     print(f"DB port: {port}")
     print(f"DB admin database: {admin_db}")
