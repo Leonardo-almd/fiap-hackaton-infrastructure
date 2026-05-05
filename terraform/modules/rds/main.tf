@@ -148,7 +148,7 @@ resource "aws_lambda_function" "report_db_init" {
   handler       = "handler.lambda_handler"
   runtime       = "python3.12"
   role          = aws_iam_role.lambda.arn
-  timeout       = 30
+  timeout       = 120
 
   vpc_config {
     subnet_ids         = var.lambda_subnet_ids
