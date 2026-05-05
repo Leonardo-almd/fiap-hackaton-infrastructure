@@ -67,6 +67,7 @@ resource "null_resource" "lambda_package" {
   triggers = {
     requirements_hash = filesha256("${local.lambda_src_dir}/requirements.txt")
     handler_hash      = filesha256("${local.lambda_src_dir}/handler.py")
+    build_id          = timestamp()
   }
 
   provisioner "local-exec" {
@@ -75,8 +76,20 @@ resource "null_resource" "lambda_package" {
       mkdir -p "${local.lambda_build_dir}"
       python3 -m pip install -r "${local.lambda_src_dir}/requirements.txt" -t "${local.lambda_build_dir}"
       cp "${local.lambda_src_dir}/handler.py" "${local.lambda_build_dir}/handler.py"
-      cd "${local.lambda_build_dir}"
-      zip -r "${local.lambda_zip_path}" .
+      python3 - <<'PY'
+import os
+import zipfile
+
+build_dir = r"${local.lambda_build_dir}"
+zip_path = r"${local.lambda_zip_path}"
+
+with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+    for root, _, files in os.walk(build_dir):
+        for name in files:
+            file_path = os.path.join(root, name)
+            arcname = os.path.relpath(file_path, build_dir)
+            zf.write(file_path, arcname)
+PY
     EOT
   }
 }
