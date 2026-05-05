@@ -17,11 +17,6 @@ def lambda_handler(event, context):
     print(f"DB host: {host}")
     print(f"DB port: {port}")
     print(f"DB admin database: {admin_db}")
-    print(f"DB username: {username}")
-    print(f"DB host: {host}")
-    print(f"DB port: {port}")
-    print(f"DB admin database: {admin_db}")
-    print(f"DB username: {username}")
 
     attempts = 10
     backoff_seconds = 5

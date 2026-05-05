@@ -29,15 +29,13 @@ resource "aws_ecs_task_definition" "upload" {
       ]
       environment = [
         { name = "AWS_REGION", value = var.aws_region },
-        { name = "S3_BUCKET", value = var.s3_bucket_name },
+        { name = "S3_BUCKET_NAME", value = var.s3_bucket_name },
         { name = "SQS_QUEUE_URL", value = var.sqs_queue_url },
-        { name = "DB_HOST", value = var.db_host },
-        { name = "DB_PORT", value = tostring(var.db_port) },
-        { name = "DB_NAME", value = var.db_name_upload }
+        { name = "SPRING_DATASOURCE_URL", value = "jdbc:postgresql://${var.db_host}:${tostring(var.db_port)}/${var.db_name_upload}" }
       ]
       secrets = [
-        { name = "DB_USERNAME", valueFrom = "${var.db_secret_arn}:username::" },
-        { name = "DB_PASSWORD", valueFrom = "${var.db_secret_arn}:password::" }
+        { name = "SPRING_DATASOURCE_USERNAME", valueFrom = "${var.db_secret_arn}:username::" },
+        { name = "SPRING_DATASOURCE_PASSWORD", valueFrom = "${var.db_secret_arn}:password::" }
       ]
       logConfiguration = {
         logDriver = "awslogs"
@@ -73,13 +71,11 @@ resource "aws_ecs_task_definition" "report" {
         }
       ]
       environment = [
-        { name = "DB_HOST", value = var.db_host },
-        { name = "DB_PORT", value = tostring(var.db_port) },
-        { name = "DB_NAME", value = var.db_name_report }
+        { name = "SPRING_DATASOURCE_URL", value = "jdbc:postgresql://${var.db_host}:${tostring(var.db_port)}/${var.db_name_report}" }
       ]
       secrets = [
-        { name = "DB_USERNAME", valueFrom = "${var.db_secret_arn}:username::" },
-        { name = "DB_PASSWORD", valueFrom = "${var.db_secret_arn}:password::" }
+        { name = "SPRING_DATASOURCE_USERNAME", valueFrom = "${var.db_secret_arn}:username::" },
+        { name = "SPRING_DATASOURCE_PASSWORD", valueFrom = "${var.db_secret_arn}:password::" }
       ]
       logConfiguration = {
         logDriver = "awslogs"
@@ -116,10 +112,10 @@ resource "aws_ecs_task_definition" "processing" {
       ]
       environment = [
         { name = "AWS_REGION", value = var.aws_region },
-        { name = "S3_BUCKET", value = var.s3_bucket_name },
+        { name = "S3_BUCKET_NAME", value = var.s3_bucket_name },
         { name = "SQS_QUEUE_URL", value = var.sqs_queue_url },
-        { name = "UPLOAD_SERVICE_URL", value = "http://${var.alb_dns_name}" },
-        { name = "REPORT_SERVICE_URL", value = "http://${var.alb_dns_name}" }
+        { name = "UPLOAD_SERVICE_BASE_URL", value = "http://${var.alb_dns_name}" },
+        { name = "REPORT_SERVICE_BASE_URL", value = "http://${var.alb_dns_name}" }
       ]
       logConfiguration = {
         logDriver = "awslogs"
