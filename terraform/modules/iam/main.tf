@@ -130,6 +130,11 @@ resource "aws_iam_role_policy" "processing" {
           "sqs:GetQueueUrl"
         ]
         Resource = var.queue_arn
+      },
+      {
+        Effect = "Allow"
+        Action = ["bedrock:InvokeModel"]
+        Resource = "arn:aws:bedrock:${var.aws_region}::foundation-model/${var.bedrock_model_id}"
       }
     ]
   })

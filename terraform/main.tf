@@ -70,6 +70,8 @@ module "iam" {
   bucket_arn      = module.storage.bucket_arn
   queue_arn       = module.messaging.queue_arn
   db_secret_arn   = module.rds.db_secret_arn
+  aws_region      = var.aws_region
+  bedrock_model_id = var.bedrock_model_id
   tags            = local.common_tags
 }
 
@@ -93,6 +95,9 @@ module "ecs" {
   upload_image          = var.upload_image
   report_image          = var.report_image
   processing_image      = var.processing_image
+  ai_adapter            = var.ai_adapter
+  bedrock_model_id      = var.bedrock_model_id
+  bedrock_region        = var.bedrock_region
   upload_tg_arn          = module.alb.upload_tg_arn
   report_tg_arn          = module.alb.report_tg_arn
   execution_role_arn    = module.iam.execution_role_arn
