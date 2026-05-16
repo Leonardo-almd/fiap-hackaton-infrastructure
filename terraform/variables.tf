@@ -150,6 +150,24 @@ variable "processing_image" {
   description = "Container image for processing-service."
 }
 
+variable "ai_adapter" {
+  type        = string
+  description = "AI adapter to use in processing-service."
+  default     = "bedrock"
+}
+
+variable "bedrock_model_id" {
+  type        = string
+  description = "Amazon Bedrock model ID used by processing-service."
+  default     = "anthropic.claude-3-sonnet-20240229-v1:0"
+}
+
+variable "bedrock_region" {
+  type        = string
+  description = "Amazon Bedrock region used by processing-service."
+  default     = "us-east-1"
+}
+
 variable "alb_allowed_cidrs" {
   type        = list(string)
   description = "Allowed CIDRs to access the ALB."

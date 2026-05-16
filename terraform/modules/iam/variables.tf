@@ -18,6 +18,16 @@ variable "db_secret_arn" {
   description = "Secrets Manager ARN for DB credentials."
 }
 
+variable "aws_region" {
+  type        = string
+  description = "AWS region used for Bedrock model ARN."
+}
+
+variable "bedrock_model_id" {
+  type        = string
+  description = "Amazon Bedrock model ID used by processing-service."
+}
+
 variable "tags" {
   type        = map(string)
   description = "Tags to apply to resources."

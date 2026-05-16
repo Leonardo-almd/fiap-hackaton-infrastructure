@@ -78,6 +78,10 @@ curl http://localhost:8080/v1/jobs/{jobId}/status
 curl http://localhost:8082/v1/reports/{jobId}
 ```
 
+## Fluxo end-to-end (jornada do usuario)
+
+Veja o documento completo em [docs/user-journey/end-to-end-flow.md](docs/user-journey/end-to-end-flow.md).
+
 ## Contratos (fonte da verdade)
 
 Todos os contratos estão em `docs/` e devem ser atualizados aqui antes de qualquer alteração nos serviços.
@@ -141,6 +145,9 @@ terraform validate
 | `upload_image` | Terraform variable | Imagem do upload-service. | - | Sim | `123456789012.dkr.ecr.us-east-1.amazonaws.com/fiap-hackaton-prod-upload-service:latest` |
 | `report_image` | Terraform variable | Imagem do report-service. | - | Sim | `123456789012.dkr.ecr.us-east-1.amazonaws.com/fiap-hackaton-prod-report-service:latest` |
 | `processing_image` | Terraform variable | Imagem do processing-service. | - | Sim | `123456789012.dkr.ecr.us-east-1.amazonaws.com/fiap-hackaton-prod-processing-service:latest` |
+| `ai_adapter` | Terraform variable | Adapter de IA do processing-service. | `bedrock` | Nao | `bedrock` |
+| `bedrock_model_id` | Terraform variable | ID do modelo Bedrock usado pelo processing-service. | `anthropic.claude-3-sonnet-20240229-v1:0` | Nao | `anthropic.claude-3-sonnet-20240229-v1:0` |
+| `bedrock_region` | Terraform variable | Regiao do Bedrock para o processing-service. | `us-east-1` | Nao | `us-east-1` |
 | `alb_allowed_cidrs` | Terraform variable | CIDRs permitidos no ALB. | `["0.0.0.0/0"]` | Nao | `["0.0.0.0/0"]` |
 | `log_retention_days` | Terraform variable | Retencao de logs (dias). | `3` | Nao | `3` |
 | `tags` | Terraform variable | Tags extras (map). | `{}` | Nao | `{ Owner = "fiap" }` |
@@ -155,6 +162,10 @@ As credenciais AWS devem ser configuradas como **Environment variables** no TFC:
 Opcionalmente, se quiser, pode definir:
 
 - `AWS_DEFAULT_REGION` (ex: `us-east-1`)
+
+Observacao importante:
+- **ECS Fargate** nao precisa de `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` no container em producao. O acesso AWS do runtime ocorre via **Task Role**.
+- Para desenvolvimento local (Bedrock real), as credenciais podem ser usadas via variaveis de ambiente ou perfil local, conforme o README do processing-service.
 
 ### API Key: precisa ou nao?
 
@@ -234,3 +245,60 @@ As tasks do ECS usam as variaveis `upload_image`, `report_image` e `processing_i
   - Exige disciplina para nao mudar infra pelo pipeline de app.
 
 Recursos provisionados: VPC, ECS Fargate, RDS PostgreSQL, S3, SQS, API Gateway, ECR, CloudWatch, Secrets Manager, IAM Roles.
+
+## Validacao Semana 5 (Checklist)
+
+Use este checklist para confirmar o que ja foi entregue e o que ainda precisa de ajuste:
+
+1) **Bedrock habilitado na conta**
+- Modelo `Claude 3 Sonnet` habilitado no console do Bedrock.
+- Regiao do modelo igual a `bedrock_region`.
+
+2) **Permissoes IAM**
+- Task Role do processing-service possui `bedrock:InvokeModel` no ARN do modelo.
+- Task Role do processing-service mantem permissoes de S3 e SQS.
+
+3) **Variaveis de ambiente do processing-service**
+- `AI_ADAPTER=bedrock`
+- `BEDROCK_MODEL_ID` e `BEDROCK_REGION`
+- `AWS_REGION`, `S3_BUCKET_NAME`, `SQS_QUEUE_URL`
+- `UPLOAD_SERVICE_BASE_URL` e `REPORT_SERVICE_BASE_URL`
+
+4) **ECS + Logs**
+- Task definition atualizada com as variaveis acima.
+- Logs no CloudWatch em `/ecs/fiap-hackaton-prod-processing` mostram chamadas Bedrock.
+
+5) **Deploy**
+- Pipeline de CD atualiza task definition e faz rollout no ECS.
+
+## Semana 6 — Entregaveis e Execucao
+
+### Entregaveis
+- README completo com **seguranca**, fluxo end-to-end e troubleshooting (este arquivo).
+- Diagrama de arquitetura exportado em [docs/architecture/architecture.md](docs/architecture/architecture.md).
+- Evidencias de teste end-to-end (prints/logs).
+
+### Runbook de Execucao (fim a fim)
+
+1) **Pre-requisitos**
+- Terraform Cloud configurado com variaveis do projeto.
+- Bedrock habilitado na conta AWS na regiao correta.
+
+2) **Provisionamento**
+- Rodar `terraform plan` e `terraform apply` via Terraform Cloud.
+
+3) **Deploy dos servicos**
+- Publicar imagens no ECR.
+- Executar pipelines de CD de cada servico.
+
+4) **Teste do fluxo**
+- `POST /v1/uploads` com arquivo valido.
+- `GET /v1/jobs/{id}/status` ate status `ANALISADO`.
+- `GET /v1/reports/{jobId}` para validar o relatorio.
+
+5) **Validacao de logs**
+- `processing-service`: confirmar logs de chamada Bedrock.
+- `upload-service` e `report-service`: confirmar persistencia e consulta.
+
+6) **Evidencias**
+- Salvar prints do API Gateway, status do job e logs do CloudWatch.

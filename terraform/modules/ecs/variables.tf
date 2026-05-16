@@ -43,6 +43,21 @@ variable "processing_image" {
   description = "Processing service image."
 }
 
+variable "ai_adapter" {
+  type        = string
+  description = "AI adapter to use in processing-service."
+}
+
+variable "bedrock_model_id" {
+  type        = string
+  description = "Amazon Bedrock model ID used by processing-service."
+}
+
+variable "bedrock_region" {
+  type        = string
+  description = "Amazon Bedrock region used by processing-service."
+}
+
 variable "upload_tg_arn" {
   type        = string
   description = "Upload target group ARN."
