@@ -10,9 +10,11 @@ data "aws_iam_policy_document" "ecs_assume" {
 }
 
 locals {
-  bedrock_invoke_resource = can(regex("^arn:aws:bedrock:", var.bedrock_model_id))
-    ? var.bedrock_model_id
-    : "arn:aws:bedrock:${var.aws_region}::foundation-model/${var.bedrock_model_id}"
+  bedrock_invoke_resource = (
+    can(regex("^arn:aws:bedrock:", var.bedrock_model_id))
+      ? var.bedrock_model_id
+      : "arn:aws:bedrock:${var.aws_region}::foundation-model/${var.bedrock_model_id}"
+  )
 }
 
 resource "aws_iam_role" "execution" {
