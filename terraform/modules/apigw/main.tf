@@ -1,5 +1,11 @@
 resource "aws_api_gateway_rest_api" "this" {
   name = "${var.name_prefix}-apigw"
+  binary_media_types = [
+    "multipart/form-data",
+    "application/pdf",
+    "image/png",
+    "image/jpeg"
+  ]
 
   endpoint_configuration {
     types = ["REGIONAL"]
