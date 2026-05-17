@@ -1,0 +1,82 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-05-16T00:00:00.000Z",
+  "__export_source": "insomnia.desktop.app:v2023.5.8",
+  "resources": [
+    {
+      "_id": "wrk_fiap_hackaton",
+      "_type": "workspace",
+      "name": "FIAP Hackaton E2E",
+      "description": "Colecao de requests para o fluxo end-to-end"
+    },
+    {
+      "_id": "env_base",
+      "_type": "environment",
+      "parentId": "wrk_fiap_hackaton",
+      "name": "Base Environment",
+      "data": {
+        "API_URL": "https://<api-id>.execute-api.<regiao>.amazonaws.com/prod",
+        "API_KEY": "<SUA_API_KEY>",
+        "JOB_ID": "<JOB_ID>",
+        "FILE_PATH": "/caminho/diagrama.png"
+      }
+    },
+    {
+      "_id": "req_upload",
+      "_type": "request",
+      "parentId": "wrk_fiap_hackaton",
+      "name": "Upload diagrama",
+      "method": "POST",
+      "url": "{{ API_URL }}/v1/uploads",
+      "headers": [
+        {
+          "name": "x-api-key",
+          "value": "{{ API_KEY }}"
+        }
+      ],
+      "body": {
+        "mimeType": "multipart/form-data",
+        "params": [
+          {
+            "name": "file",
+            "type": "file",
+            "fileName": "{{ FILE_PATH }}"
+          },
+          {
+            "name": "description",
+            "value": "Teste de processamento"
+          }
+        ]
+      }
+    },
+    {
+      "_id": "req_status",
+      "_type": "request",
+      "parentId": "wrk_fiap_hackaton",
+      "name": "Consultar status do job",
+      "method": "GET",
+      "url": "{{ API_URL }}/v1/jobs/{{ JOB_ID }}/status",
+      "headers": [
+        {
+          "name": "x-api-key",
+          "value": "{{ API_KEY }}"
+        }
+      ]
+    },
+    {
+      "_id": "req_report",
+      "_type": "request",
+      "parentId": "wrk_fiap_hackaton",
+      "name": "Consultar relatorio",
+      "method": "GET",
+      "url": "{{ API_URL }}/v1/reports/{{ JOB_ID }}",
+      "headers": [
+        {
+          "name": "x-api-key",
+          "value": "{{ API_KEY }}"
+        }
+      ]
+    }
+  ]
+}
