@@ -40,7 +40,7 @@ flowchart TD
     RDS[("RDS PostgreSQL\ninstancia unica\nDBs: upload_db + report_db")]
     S3[("AWS S3\nbucket: fiap-diagrams")]
     SQS[("AWS SQS\nfila: diagram-analysis")]
-    AI["Amazon Bedrock\nClaude 3 Sonnet\n(Fase 2)"]
+    AI["Amazon Bedrock\nClaude Sonnet 4.5\n(Fase 2)"]
 
     Client -->|"HTTPS"| APIGW
     APIGW --> ALB --> ECS
