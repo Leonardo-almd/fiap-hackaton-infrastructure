@@ -41,6 +41,7 @@ resource "aws_api_gateway_integration" "proxy" {
   integration_http_method = "ANY"
   type                    = "HTTP_PROXY"
   uri                     = "http://${var.alb_dns_name}/{proxy}"
+  passthrough_behavior    = "WHEN_NO_TEMPLATES"
 
   request_parameters = {
     "integration.request.path.proxy" = "method.request.path.proxy"
@@ -62,6 +63,7 @@ resource "aws_api_gateway_integration" "root" {
   integration_http_method = "ANY"
   type                    = "HTTP_PROXY"
   uri                     = "http://${var.alb_dns_name}"
+  passthrough_behavior    = "WHEN_NO_TEMPLATES"
 }
 
 resource "aws_api_gateway_deployment" "this" {
@@ -69,6 +71,7 @@ resource "aws_api_gateway_deployment" "this" {
 
   triggers = {
     redeployment = sha1(jsonencode([
+      aws_api_gateway_rest_api.this.binary_media_types,
       aws_api_gateway_method.proxy.id,
       aws_api_gateway_integration.proxy.id,
       aws_api_gateway_method.root.id,
