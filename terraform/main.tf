@@ -2,17 +2,6 @@ provider "aws" {
   region = var.aws_region
 }
 
-resource "aws_bedrock_inference_profile" "sonnet_45" {
-  name        = "${local.name_prefix}-sonnet-45"
-  description = "Inference profile for Claude Sonnet 4.5"
-
-  model_source {
-    copy_from = "arn:aws:bedrock:${var.bedrock_region}::foundation-model/${var.bedrock_model_id}"
-  }
-
-  tags = local.common_tags
-}
-
 module "network" {
   source               = "./modules/network"
   name_prefix          = local.name_prefix
@@ -82,7 +71,7 @@ module "iam" {
   queue_arn       = module.messaging.queue_arn
   db_secret_arn   = module.rds.db_secret_arn
   aws_region      = var.aws_region
-  bedrock_model_id = aws_bedrock_inference_profile.sonnet_45.arn
+  bedrock_model_id = var.bedrock_model_id
   tags            = local.common_tags
 }
 
@@ -107,7 +96,7 @@ module "ecs" {
   report_image          = var.report_image
   processing_image      = var.processing_image
   ai_adapter            = var.ai_adapter
-  bedrock_model_id      = aws_bedrock_inference_profile.sonnet_45.arn
+  bedrock_model_id      = var.bedrock_model_id
   bedrock_region        = var.bedrock_region
   upload_tg_arn          = module.alb.upload_tg_arn
   report_tg_arn          = module.alb.report_tg_arn
