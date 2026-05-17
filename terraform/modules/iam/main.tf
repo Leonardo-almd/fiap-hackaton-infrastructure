@@ -9,6 +9,12 @@ data "aws_iam_policy_document" "ecs_assume" {
   }
 }
 
+locals {
+  bedrock_invoke_resource = can(regex("^arn:aws:bedrock:", var.bedrock_model_id))
+    ? var.bedrock_model_id
+    : "arn:aws:bedrock:${var.aws_region}::foundation-model/${var.bedrock_model_id}"
+}
+
 resource "aws_iam_role" "execution" {
   name               = "${var.name_prefix}-role-ecs-exec"
   assume_role_policy = data.aws_iam_policy_document.ecs_assume.json
@@ -134,7 +140,7 @@ resource "aws_iam_role_policy" "processing" {
       {
         Effect = "Allow"
         Action = ["bedrock:InvokeModel"]
-        Resource = "arn:aws:bedrock:${var.aws_region}::foundation-model/${var.bedrock_model_id}"
+        Resource = local.bedrock_invoke_resource
       },
       {
         Effect = "Allow"
