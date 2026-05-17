@@ -159,7 +159,7 @@ variable "ai_adapter" {
 variable "bedrock_model_id" {
   type        = string
   description = "Amazon Bedrock model ID used by processing-service."
-  default     = "anthropic.claude-sonnet-4-5-20250929-v1:0"
+  default     = "global.anthropic.claude-sonnet-4-5-20250929-v1:0"
 }
 
 variable "bedrock_region" {
