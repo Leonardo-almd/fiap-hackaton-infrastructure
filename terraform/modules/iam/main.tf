@@ -8,6 +8,16 @@ data "aws_iam_policy_document" "ecs_assume" {
     }
   }
 }
+
+data "aws_caller_identity" "current" {}
+
+locals {
+  bedrock_invoke_resources = [
+    "arn:aws:bedrock:${var.aws_region}:${data.aws_caller_identity.current.account_id}:inference-profile/${var.bedrock_model_id_prefix}.${var.bedrock_model_id}",
+    "arn:aws:bedrock:${var.aws_region}::foundation-model/${var.bedrock_model_id}",
+    "arn:aws:bedrock:::foundation-model/${var.bedrock_model_id}"
+  ]
+}
 resource "aws_iam_role" "execution" {
   name               = "${var.name_prefix}-role-ecs-exec"
   assume_role_policy = data.aws_iam_policy_document.ecs_assume.json
@@ -133,7 +143,7 @@ resource "aws_iam_role_policy" "processing" {
       {
         Effect = "Allow"
         Action = ["bedrock:InvokeModel"]
-        Resource = "arn:aws:bedrock:${var.aws_region}::foundation-model/${var.bedrock_model_id}"
+        Resource = local.bedrock_invoke_resources
       },
       {
         Effect = "Allow"

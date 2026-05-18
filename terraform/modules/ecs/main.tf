@@ -117,7 +117,7 @@ resource "aws_ecs_task_definition" "processing" {
         { name = "UPLOAD_SERVICE_BASE_URL", value = "http://${var.alb_dns_name}" },
         { name = "REPORT_SERVICE_BASE_URL", value = "http://${var.alb_dns_name}" },
         { name = "AI_ADAPTER", value = var.ai_adapter },
-        { name = "BEDROCK_MODEL_ID", value = var.bedrock_model_id },
+        { name = "BEDROCK_MODEL_ID", value = "${var.bedrock_model_id_prefix}.${var.bedrock_model_id}" },
         { name = "BEDROCK_REGION", value = var.bedrock_region }
       ]
       logConfiguration = {

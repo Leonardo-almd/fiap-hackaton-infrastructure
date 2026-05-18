@@ -72,6 +72,7 @@ module "iam" {
   db_secret_arn   = module.rds.db_secret_arn
   aws_region      = var.aws_region
   bedrock_model_id = var.bedrock_model_id
+  bedrock_model_id_prefix = var.bedrock_model_id_prefix
   tags            = local.common_tags
 }
 
@@ -97,6 +98,7 @@ module "ecs" {
   processing_image      = var.processing_image
   ai_adapter            = var.ai_adapter
   bedrock_model_id      = var.bedrock_model_id
+  bedrock_model_id_prefix = var.bedrock_model_id_prefix
   bedrock_region        = var.bedrock_region
   upload_tg_arn          = module.alb.upload_tg_arn
   report_tg_arn          = module.alb.report_tg_arn
