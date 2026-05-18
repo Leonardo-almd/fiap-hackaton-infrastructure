@@ -25,7 +25,12 @@ variable "aws_region" {
 
 variable "bedrock_model_id" {
   type        = string
-  description = "Amazon Bedrock model ID used by processing-service."
+  description = "Base Amazon Bedrock model ID (without cross-region prefix)."
+}
+
+variable "bedrock_model_id_prefix" {
+  type        = string
+  description = "Cross-region prefix for the Bedrock model ID (e.g., global, us)."
 }
 
 variable "tags" {

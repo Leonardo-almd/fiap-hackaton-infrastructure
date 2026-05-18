@@ -146,7 +146,8 @@ terraform validate
 | `report_image` | Terraform variable | Imagem do report-service. | - | Sim | `123456789012.dkr.ecr.us-east-1.amazonaws.com/fiap-hackaton-prod-report-service:latest` |
 | `processing_image` | Terraform variable | Imagem do processing-service. | - | Sim | `123456789012.dkr.ecr.us-east-1.amazonaws.com/fiap-hackaton-prod-processing-service:latest` |
 | `ai_adapter` | Terraform variable | Adapter de IA do processing-service. | `bedrock` | Nao | `bedrock` |
-| `bedrock_model_id` | Terraform variable | ID do modelo Bedrock usado pelo processing-service. | `global.anthropic.claude-sonnet-4-5-20250929-v1:0` | Nao | `global.anthropic.claude-sonnet-4-5-20250929-v1:0` |
+| `bedrock_model_id` | Terraform variable | ID base do modelo Bedrock (sem prefixo). | `anthropic.claude-sonnet-4-5-20250929-v1:0` | Nao | `anthropic.claude-sonnet-4-5-20250929-v1:0` |
+| `bedrock_model_id_prefix` | Terraform variable | Prefixo cross-region do modelo (ex: global, us). | `global` | Nao | `global` |
 | `bedrock_region` | Terraform variable | Regiao do Bedrock para o processing-service. | `us-east-1` | Nao | `us-east-1` |
 | `alb_allowed_cidrs` | Terraform variable | CIDRs permitidos no ALB. | `["0.0.0.0/0"]` | Nao | `["0.0.0.0/0"]` |
 | `log_retention_days` | Terraform variable | Retencao de logs (dias). | `3` | Nao | `3` |
