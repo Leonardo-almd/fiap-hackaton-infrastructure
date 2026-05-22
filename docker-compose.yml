@@ -6,10 +6,10 @@ version: "3.9"
 # Pré-requisito: os 4 repositórios devem estar clonados como irmãos:
 #
 #   ~/projects/
-#   ├── fiap-upload-service/
-#   ├── fiap-processing-service/
-#   ├── fiap-report-service/
-#   └── fiap-infrastructure/       ← este arquivo
+#   ├── fiap-hackaton-upload-service/
+#   ├── fiap-hackaton-processing-service/
+#   ├── fiap-hackaton-report-service/
+#   └── fiap-hackaton-infrastructure/       ← este arquivo
 #
 # Para rodar: docker compose up -d
 # =============================================================================
@@ -79,11 +79,11 @@ services:
 
   # ---------------------------------------------------------------------------
   # Upload Service
-  # build context aponta para o repo irmão ../fiap-upload-service
+  # build context aponta para o repo irmão ../fiap-hackaton-upload-service
   # ---------------------------------------------------------------------------
   upload-service:
     build:
-      context: ../fiap-upload-service
+      context: ../fiap-hackaton-upload-service
       dockerfile: Dockerfile
     container_name: fiap-upload-service
     ports:
@@ -109,7 +109,7 @@ services:
   # ---------------------------------------------------------------------------
   processing-service:
     build:
-      context: ../fiap-processing-service
+      context: ../fiap-hackaton-processing-service
       dockerfile: Dockerfile
     container_name: fiap-processing-service
     ports:
@@ -137,7 +137,7 @@ services:
   # ---------------------------------------------------------------------------
   report-service:
     build:
-      context: ../fiap-report-service
+      context: ../fiap-hackaton-report-service
       dockerfile: Dockerfile
     container_name: fiap-report-service
     ports:
