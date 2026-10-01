@@ -1,6 +1,10 @@
-# FIAP Secure Systems — MVP de Análise Automatizada de Diagramas de Arquitetura
+[🇧🇷 Português](#-fiap-secure-systems--mvp-de-análise-automatizada-de-diagramas-de-arquitetura) | [🇦🇺 English](#-fiap-secure-systems--automated-architecture-diagram-analysis-mvp)
 
-#  Documentação
+---
+
+# 🇧🇷 FIAP Secure Systems — MVP de Análise Automatizada de Diagramas de Arquitetura
+
+# Documentação
 
 Este sistema agrega vários serviços. A documentação principal foi centralizada no repositório de infraestrutura:
 
@@ -11,7 +15,6 @@ Documentação por serviço:
 - [fiap-hackaton-upload-service/README.md](fiap-hackaton-upload-service/README.md)
 - [fiap-hackaton-processing-service/README.md](fiap-hackaton-processing-service/README.md)
 - [fiap-hackaton-report-service/README.md](fiap-hackaton-report-service/README.md)
-
 
 ## Descrição do Problema
 
@@ -366,3 +369,381 @@ As tasks do ECS usam as variáveis `upload_image`, `report_image` e `processing_
 1. **Deploy direto no ECS (sem atualizar Terraform) >UTILIZADO<**
   - CI/CD faz `aws ecs update-service` com nova task definition.
   - Mais rápido, mas o estado do Terraform fica desatualizado.
+
+---
+
+[⬆️ Back to top / Voltar ao topo](#-fiap-secure-systems--mvp-de-análise-automatizada-de-diagramas-de-arquitetura)
+
+---
+
+# 🇦🇺 FIAP Secure Systems — Automated Architecture Diagram Analysis MVP
+
+# Documentation
+
+This system aggregates several services. The main documentation has been centralized in the infrastructure repository:
+
+- [fiap-hackaton-infrastructure/README.md](fiap-hackaton-infrastructure/README.md)
+
+Per-service documentation:
+
+- [fiap-hackaton-upload-service/README.md](fiap-hackaton-upload-service/README.md)
+- [fiap-hackaton-processing-service/README.md](fiap-hackaton-processing-service/README.md)
+- [fiap-hackaton-report-service/README.md](fiap-hackaton-report-service/README.md)
+
+## Problem Description
+
+Companies operating distributed systems have dozens of architecture diagrams stored as images or PDFs. Manually analyzing these diagrams is slow, depends on specialists, and does not scale.
+
+This MVP solves that problem by allowing the **upload of an architecture diagram** and automatically returning a **structured technical report** with identified components, architectural risks, and recommendations — all powered by AI.
+
+---
+
+## Solution Architecture
+
+The solution is based on **3 independent microservices**, asynchronous communication via **AWS SQS**, and an internal architecture following the **hexagonal (Ports & Adapters)** model.
+
+```
+Client -> AWS API Gateway -> upload-service -> S3 + SQS
+                                               |
+                                    processing-service -> AI (Bedrock)
+                                               |
+                                      report-service
+```
+
+For the full diagram with all flows, see [docs/architecture/architecture.md](docs/architecture/architecture.md).
+
+### Microservices
+
+| Service | Port | Responsibility |
+|---|---|---|
+| `upload-service` | 8080 | Receive files, create jobs, publish to the queue |
+| `processing-service` | 8081 | Consume the queue, orchestrate AI analysis |
+| `report-service` | 8082 | Persist and expose reports |
+
+### Technology Stack
+
+| Layer | Technology |
+|---|---|
+| Language | Java 21 + Spring Boot 3.3 |
+| Async queue | AWS SQS (Standard + DLQ) |
+| File storage | AWS S3 |
+| Database | AWS RDS PostgreSQL 16 (one per service) |
+| Infrastructure as code | Terraform |
+| Containers | Docker + AWS ECS Fargate |
+| CI/CD | GitHub Actions |
+| Observability | AWS CloudWatch + Spring Actuator |
+| AI (Phase 2) | Amazon Bedrock — Claude Sonnet 4.5 |
+
+---
+
+## Solution Flow
+
+1. **Upload**: client sends a diagram (PNG, JPG, or PDF) via `POST /v1/uploads`
+2. **Storage**: file is saved to S3; a job is created with status `RECEBIDO`
+3. **Queueing**: message published to SQS with `jobId` and S3 location
+4. **Processing**: `processing-service` consumes the message; status -> `EM_PROCESSAMENTO`
+5. **AI Analysis**: diagram is sent to the vision model; response structured as JSON
+6. **Report**: result persisted in `report-service`; status -> `ANALISADO`
+7. **Query**: client checks status via `GET /v1/jobs/{jobId}/status` and the report via `GET /v1/reports/{jobId}`
+
+---
+
+## API Contracts
+
+| Service | OpenAPI Contract |
+|---|---|
+| upload-service | [docs/api/upload-service-api.yaml](docs/api/upload-service-api.yaml) |
+| report-service | [docs/api/report-service-api.yaml](docs/api/report-service-api.yaml) |
+
+### Main Endpoints
+
+```
+POST   /v1/uploads                    # Diagram upload
+GET    /v1/jobs/{jobId}/status        # Processing status
+GET    /v1/reports/{jobId}            # Full report
+```
+
+### SQS Message Format
+
+See the full schema at [docs/schemas/sqs-message.json](docs/schemas/sqs-message.json).
+
+```json
+{
+  "jobId": "550e8400-e29b-41d4-a716-446655440000",
+  "s3Key": "uploads/550e8400-e29b-41d4-a716-446655440000.pdf",
+  "fileType": "PDF",
+  "fileSize": 245760,
+  "originalFilename": "arquitetura-ecommerce-v2.pdf",
+  "publishedAt": "2024-11-15T10:30:00.123Z"
+}
+```
+
+### Report Schema
+
+See the full schema at [docs/schemas/report.json](docs/schemas/report.json).
+
+```json
+{
+  "jobId": "...",
+  "componentes": [{ "nome": "...", "tipo": "SERVICE", "descricao": "..." }],
+  "riscos": [{ "severidade": "ALTA", "categoria": "ACOPLAMENTO", "titulo": "...", "descricao": "..." }],
+  "recomendacoes": [{ "prioridade": "ALTA", "titulo": "...", "descricao": "..." }]
+}
+```
+
+---
+
+## Project Repositories
+
+| Repository | Owner | Description |
+|---|---|---|
+| fiap-hackaton-upload-service | Person 1 | Receives diagrams, creates jobs, publishes to SQS |
+| fiap-hackaton-processing-service | Person 2 | Consumes the queue, orchestrates the AI pipeline |
+| fiap-hackaton-report-service | Person 2 | Persists and exposes analysis reports |
+| **fiap-hackaton-infrastructure** (this repo) | Person 1 | Terraform, docker-compose, documentation |
+
+## Structure
+
+```
+fiap-hackaton-infrastructure/
+├── terraform/              # AWS infrastructure as code
+│   └── modules/
+├── docs/
+│   ├── api/                # OpenAPI contracts (source of truth)
+│   ├── schemas/            # JSON Schemas (SQS message, report)
+│   ├── database/           # Database initialization scripts
+│   └── architecture/       # Diagram and architectural decisions
+├── scripts/
+│   └── localstack-init.sh  # Creates S3 and SQS in LocalStack
+├── docker-compose.yml      # Full local environment
+└── README.md
+```
+
+## Local Environment
+
+### Prerequisite: clone all repos as siblings
+
+```bash
+mkdir ~/fiap-project && cd ~/fiap-project
+git clone https://github.com/org/fiap-hackaton-upload-service
+git clone https://github.com/org/fiap-hackaton-processing-service
+git clone https://github.com/org/fiap-hackaton-report-service
+git clone https://github.com/org/fiap-hackaton-infrastructure
+```
+
+### Starting the environment
+
+```bash
+cd fiap-hackaton-infrastructure
+
+# Brings up only the infrastructure (LocalStack + databases)
+docker compose up localstack upload-db report-db -d
+
+# Brings up everything (including the services)
+docker compose up -d
+
+# Check health
+curl http://localhost:8080/actuator/health   # upload-service
+curl http://localhost:8081/actuator/health   # processing-service
+curl http://localhost:8082/actuator/health   # report-service
+```
+
+### Testing the full flow
+
+```bash
+# 1. Upload a diagram
+curl -X POST http://localhost:8080/v1/uploads \
+  -F "file=@/path/diagram.png" \
+  -F "description=My diagram"
+
+# 2. Check status (replace {jobId} with the returned value)
+curl http://localhost:8080/v1/jobs/{jobId}/status
+
+# 3. Fetch the report once status = ANALISADO
+curl http://localhost:8082/v1/reports/{jobId}
+```
+
+## End-to-End Flow (User Journey)
+
+See the full document at [docs/user-journey/end-to-end-flow.md](docs/user-journey/end-to-end-flow.md).
+
+## Contracts (Source of Truth)
+
+All contracts live in `docs/` and must be updated here before any change to the services.
+
+| File | Description |
+|---|---|
+| `docs/api/upload-service-api.yaml` | upload-service OpenAPI |
+| `docs/api/report-service-api.yaml` | report-service OpenAPI |
+| `docs/schemas/sqs-message.json` | SQS message JSON Schema |
+| `docs/schemas/report.json` | Report JSON Schema |
+| `docs/database/upload-service-init.sql` | upload_db database schema |
+| `docs/database/report-service-init.sql` | report_db database schema |
+| `docs/architecture/architecture.md` | Diagram and architectural decisions |
+
+## Security
+
+### Input Validation
+- Accepted file types: PNG, JPG, JPEG, PDF (MIME type and extension validation)
+- Maximum size: 10MB per file
+- Filename sanitization before using it as an S3 key
+
+### Inter-Service Communication
+- HTTPS mandatory on all external endpoints (via API Gateway)
+- TLS for internal communication between services on ECS (private VPC)
+- IAM Roles per service (principle of least privilege)
+- Restrictive Security Groups: each service accesses only what it needs
+
+### Storage
+- S3: private bucket, access only via the ECS Task's IAM Role
+- RDS: no public access; only via the VPC Security Group
+- Credentials: AWS Secrets Manager (never in environment variables in production)
+
+### AI (Phase 2)
+- Input guardrails: reject files that are not architectural diagrams
+- Output guardrails: validate the response's JSON schema before persisting
+- Explicit fallback: if the AI returns an invalid response or an error, the job moves to `ERRO` with a traceable message
+- No sensitive data exposed to the model (files are processed as image/text, not as business data)
+
+### Known Risks and Limitations
+- The MVP uses a simple API Key on the API Gateway; OAuth2/Cognito is recommended for production
+- The DLQ captures messages that failed 3 times; manual review may be required
+- The AI model may not recognize very complex diagrams or ones with non-standard notations
+
+## AWS Infrastructure (Terraform)
+
+This repository uses **Terraform Cloud** for `plan` and `apply`.
+
+```bash
+cd terraform
+
+# Validate locally (without a remote backend)
+terraform init -backend=false
+terraform fmt -recursive
+terraform validate
+```
+
+### Terraform Cloud Workspace
+
+- Workspace: `fiap-hackaton-prod`
+- Execution mode: Remote
+- VCS-driven (working branch)
+
+### Required Variables in Terraform Cloud
+
+| Variable | Type in TFC | Description | Default | Required | Example |
+|---|---|---|---|---|---|
+| `tfc_organization` | Terraform variable | Organization name in Terraform Cloud. | - | Yes | `fiap-lab` |
+| `tfc_workspace` | Terraform variable | Workspace name in TFC. | `fiap-hackaton-prod` | No | `fiap-hackaton-prod` |
+| `aws_region` | Terraform variable | AWS region to provision in. | `us-east-1` | No | `us-east-1` |
+| `project` | Terraform variable | Resource name prefix. | `fiap-hackaton` | No | `fiap-hackaton` |
+| `environment` | Terraform variable | Environment used in the prefix. | `prod` | No | `prod` |
+| `vpc_cidr` | Terraform variable | VPC CIDR. | `10.0.0.0/16` | No | `10.0.0.0/16` |
+| `public_subnet_cidrs` | Terraform variable | Public subnet CIDRs. | `["10.0.1.0/24", "10.0.2.0/24"]` | No | `["10.0.1.0/24", "10.0.2.0/24"]` |
+| `private_subnet_cidrs` | Terraform variable | Private subnet CIDRs. | `["10.0.11.0/24", "10.0.12.0/24"]` | No | `["10.0.11.0/24", "10.0.12.0/24"]` |
+| `db_instance_class` | Terraform variable | RDS instance class. | `db.t3.micro` | No | `db.t3.micro` |
+| `db_allocated_storage` | Terraform variable | RDS storage size (GB). | `20` | No | `20` |
+| `db_name_upload` | Terraform variable | upload-service DB name. | `upload_db` | No | `upload_db` |
+| `db_name_report` | Terraform variable | report-service DB name. | `report_db` | No | `report_db` |
+| `create_report_db` | Terraform variable | Create the `report_db` database after RDS comes up. | `true` | No | `true` |
+| `db_username` | Terraform variable | RDS master user (sensitive). | - | Yes | `fiap_user` |
+| `db_password` | Terraform variable | RDS master password (sensitive). | - | Yes | `S3nh@F0rte!` |
+| `s3_bucket_name` | Terraform variable | S3 bucket for uploads. | `fiap-hackaton-prod-diagrams` | No | `fiap-hackaton-prod-diagrams` |
+| `sqs_queue_name` | Terraform variable | Main SQS queue. | `fiap-hackaton-prod-diagram-analysis` | No | `fiap-hackaton-prod-diagram-analysis` |
+| `sqs_dlq_name` | Terraform variable | Main queue's DLQ. | `fiap-hackaton-prod-diagram-analysis-dlq` | No | `fiap-hackaton-prod-diagram-analysis-dlq` |
+| `api_gw_stage` | Terraform variable | API Gateway stage. | `prod` | No | `prod` |
+| `api_key_name` | Terraform variable | API Key name. | `fiap-hackaton-prod-apikey` | No | `fiap-hackaton-prod-apikey` |
+| `api_key_value` | Terraform variable | API Key value (sensitive). | - | Yes | `change-me-123` |
+| `ecs_cpu` | Terraform variable | CPU per task (Fargate). | `256` | No | `256` |
+| `ecs_memory` | Terraform variable | Memory per task (MiB). | `512` | No | `512` |
+| `upload_image` | Terraform variable | upload-service image. | - | Yes | `123456789012.dkr.ecr.us-east-1.amazonaws.com/fiap-hackaton-prod-upload-service:latest` |
+| `report_image` | Terraform variable | report-service image. | - | Yes | `123456789012.dkr.ecr.us-east-1.amazonaws.com/fiap-hackaton-prod-report-service:latest` |
+| `processing_image` | Terraform variable | processing-service image. | - | Yes | `123456789012.dkr.ecr.us-east-1.amazonaws.com/fiap-hackaton-prod-processing-service:latest` |
+| `ai_adapter` | Terraform variable | processing-service AI adapter. | `bedrock` | No | `bedrock` |
+| `bedrock_model_id` | Terraform variable | Base Bedrock model ID (without prefix). | `anthropic.claude-sonnet-4-5-20250929-v1:0` | No | `anthropic.claude-sonnet-4-5-20250929-v1:0` |
+| `bedrock_model_id_prefix` | Terraform variable | Model's cross-region prefix (e.g. global, us). | `global` | No | `global` |
+| `bedrock_region` | Terraform variable | Bedrock region for processing-service. | `us-east-1` | No | `us-east-1` |
+| `alb_allowed_cidrs` | Terraform variable | CIDRs allowed on the ALB. | `["0.0.0.0/0"]` | No | `["0.0.0.0/0"]` |
+| `log_retention_days` | Terraform variable | Log retention (days). | `3` | No | `3` |
+| `tags` | Terraform variable | Extra tags (map). | `{}` | No | `{ Owner = "fiap" }` |
+
+### Environment Variables in Terraform Cloud
+
+AWS credentials must be configured as **Environment variables** in TFC:
+
+- `AWS_ACCESS_KEY_ID` (sensitive)
+- `AWS_SECRET_ACCESS_KEY` (sensitive)
+
+Optionally, you can also set:
+
+- `AWS_DEFAULT_REGION` (e.g. `us-east-1`)
+
+Important note:
+- **ECS Fargate** does not need `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` in the container in production. The runtime's AWS access happens via the **Task Role**.
+- For local development (real Bedrock), credentials can be used via environment variables or a local profile, as described in the processing-service README.
+
+### How to Generate the API Key
+
+1. Generate a strong value locally:
+
+```bash
+openssl rand -hex 24
+```
+
+2. Save the value in Terraform Cloud as `api_key_value` (sensitive).
+3. The API Key will be created in the API Gateway under the name `api_key_name`.
+
+Client usage (example):
+
+```bash
+curl -H "x-api-key: <API_KEY>" https://<invoke-url>/v1/uploads
+```
+
+If you prefer, you can generate it manually in the AWS console, but **in this project the API Key is managed by Terraform** to keep everything versioned.
+
+### Provisioned Resources
+
+- VPC (public and private subnets), IGW, routes
+- Public ALB with path-based routing
+- ECS Fargate (upload, report, processing)
+- RDS PostgreSQL (single instance with two logical databases)
+- S3 (private bucket with SSE-S3)
+- SQS + DLQ
+- API Gateway (REST) with API Key
+- ECR (one repository per service)
+- CloudWatch Log Groups
+- IAM Roles (execution + task roles)
+- Secrets Manager (DB credentials)
+
+### Standard Naming (prefix)
+
+- Prefix: `${project}-${environment}` (default: `fiap-hackaton-prod`)
+- S3: `fiap-hackaton-prod-diagrams`
+- SQS: `fiap-hackaton-prod-diagram-analysis`
+- DLQ: `fiap-hackaton-prod-diagram-analysis-dlq`
+- ALB: `fiap-hackaton-prod-alb`
+- ECS Cluster: `fiap-hackaton-prod-cluster`
+- ECS Services: `fiap-hackaton-prod-svc-upload`, `fiap-hackaton-prod-svc-report`, `fiap-hackaton-prod-svc-processing`
+- RDS: `fiap-hackaton-prod-rds`
+- API Gateway: `fiap-hackaton-prod-apigw`
+- Log Groups: `/ecs/fiap-hackaton-prod-upload`, `/ecs/fiap-hackaton-prod-report`, `/ecs/fiap-hackaton-prod-processing`
+
+### Access and Operation
+
+- API Gateway: use the `api_gateway_invoke_url` output
+- API Key: value defined in `api_key_value`
+- Logs: CloudWatch Log Groups `/ecs/fiap-hackaton-prod-*`
+- Bucket: `fiap-hackaton-prod-diagrams`
+- SQS: `fiap-hackaton-prod-diagram-analysis`
+
+### Image Integration (CI/CD -> ECS)
+
+ECS tasks use the `upload_image`, `report_image`, and `processing_image` variables (with a tag). CI/CD needs to publish the image to ECR and update these values.
+
+1. **Direct deploy to ECS (without updating Terraform) >USED<**
+  - CI/CD runs `aws ecs update-service` with a new task definition.
+  - Faster, but the Terraform state becomes out of date.
+
+---
+
+[⬆️ Back to top / Voltar ao topo](#-fiap-secure-systems--mvp-de-análise-automatizada-de-diagramas-de-arquitetura)
